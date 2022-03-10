@@ -112,7 +112,7 @@ const getAllProperties = (options, limit = 10) => {
   // console.log("🚀 ~ file: database.js ~ line 112 ~ getAllProperties ~ options", options);
 
   const queryParams = [];
-  const {city, owner_id, minimum_price_per_night, maximum_price_per_night} = options;
+  const {city, owner_id, minimum_price_per_night, maximum_price_per_night, minimum_rating} = options;
 
   // HEADER FOR QUERY STRING
   let queryString = `
@@ -125,7 +125,7 @@ const getAllProperties = (options, limit = 10) => {
   // Check if owner ID was passed-in
   if (owner_id) {
     queryParams.push(`${owner_id}`);
-    queryString += `AND owner_id = $${queryParams.length}`;
+    queryString += ` AND owner_id = $${queryParams.length}`;
   }
 
   // Check if min/max price
@@ -133,28 +133,31 @@ const getAllProperties = (options, limit = 10) => {
     const min = parseInt(minimum_price_per_night,10) * 100;
     const max = parseInt(maximum_price_per_night,10) * 100;
     queryParams.push(min);
-    queryString += `AND cost_per_night > $${queryParams.length}`;
+    queryString += ` AND cost_per_night > $${queryParams.length}`;
     queryParams.push(max);
-    queryString += `AND cost_per_night < $${queryParams.length}`;
+    queryString += ` AND cost_per_night < $${queryParams.length}`;
   }
 
   // Check if city was added
   if (city) {
     queryParams.push(`%${city.toLowerCase()}%`);
-    queryString += `AND LOWER(city) LIKE $${queryParams.length} `;
+    queryString += ` AND LOWER(city) LIKE $${queryParams.length}`;
+  }
+
+  // Add group by
+  queryString += ` GROUP BY properties.id`;
+
+  if (minimum_rating) {
+    queryParams.push(parseInt(minimum_rating,10));
+    queryString += ` HAVING avg(property_reviews.rating) >= $${queryParams.length}`;
   }
 
   // FOOTER FOR QUERY STRING
   queryParams.push(limit);
   queryString += `
-    GROUP BY properties.id
     ORDER BY cost_per_night
     LIMIT $${queryParams.length};
   `;
-
-  // console.log(queryString, queryParams);
-  // console.log("🚀 ~ file: database.js ~ line 145 ~ getAllProperties ~ queryString", queryString);
-  // console.log("queryParams", queryParams);
 
   return pool
     .query(queryString, queryParams)
