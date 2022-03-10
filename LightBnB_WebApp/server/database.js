@@ -109,22 +109,42 @@ exports.getAllReservations = getAllReservations;
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = (options, limit = 10) => {
+  // console.log("🚀 ~ file: database.js ~ line 112 ~ getAllProperties ~ options", options);
 
   const queryParams = [];
+  const {city, owner_id, minimum_price_per_night, maximum_price_per_night} = options;
 
+  // HEADER FOR QUERY STRING
   let queryString = `
     SELECT properties.*, avg(property_reviews.rating) as average_rating
     FROM properties
     JOIN property_reviews ON properties.id = property_id
+    WHERE 1=1
   `;
 
-  // Check if city was added
-  if (options.city) {
-    queryParams.push(`%${options.city.toLowerCase()}%`);
-    queryString += `WHERE LOWER(city) LIKE $${queryParams.length} `;
+  // Check if owner ID was passed-in
+  if (owner_id) {
+    queryParams.push(`${owner_id}`);
+    queryString += `AND owner_id = $${queryParams.length}`;
   }
 
-  //Close out the query
+  // Check if min/max price
+  if (minimum_price_per_night && maximum_price_per_night) {
+    const min = parseInt(minimum_price_per_night,10) * 100;
+    const max = parseInt(maximum_price_per_night,10) * 100;
+    queryParams.push(min);
+    queryString += `AND cost_per_night > $${queryParams.length}`;
+    queryParams.push(max);
+    queryString += `AND cost_per_night < $${queryParams.length}`;
+  }
+
+  // Check if city was added
+  if (city) {
+    queryParams.push(`%${city.toLowerCase()}%`);
+    queryString += `AND LOWER(city) LIKE $${queryParams.length} `;
+  }
+
+  // FOOTER FOR QUERY STRING
   queryParams.push(limit);
   queryString += `
     GROUP BY properties.id
@@ -133,6 +153,9 @@ const getAllProperties = (options, limit = 10) => {
   `;
 
   // console.log(queryString, queryParams);
+  // console.log("🚀 ~ file: database.js ~ line 145 ~ getAllProperties ~ queryString", queryString);
+  // console.log("queryParams", queryParams);
+
   return pool
     .query(queryString, queryParams)
     .then((result) => {
