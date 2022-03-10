@@ -109,8 +109,32 @@ exports.getAllReservations = getAllReservations;
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = (options, limit = 10) => {
+
+  const queryParams = [];
+
+  let queryString = `
+    SELECT properties.*, avg(property_reviews.rating) as average_rating
+    FROM properties
+    JOIN property_reviews ON properties.id = property_id
+  `;
+
+  // Check if city was added
+  if (options.city) {
+    queryParams.push(`%${options.city.toLowerCase()}%`);
+    queryString += `WHERE LOWER(city) LIKE $${queryParams.length} `;
+  }
+
+  //Close out the query
+  queryParams.push(limit);
+  queryString += `
+    GROUP BY properties.id
+    ORDER BY cost_per_night
+    LIMIT $${queryParams.length};
+  `;
+
+  // console.log(queryString, queryParams);
   return pool
-    .query(`SELECT * FROM properties LIMIT $1`, [limit])
+    .query(queryString, queryParams)
     .then((result) => {
       return result.rows;
     })
