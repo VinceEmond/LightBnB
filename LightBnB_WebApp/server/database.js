@@ -112,7 +112,13 @@ const getAllProperties = (options, limit = 10) => {
   // console.log("🚀 ~ file: database.js ~ line 112 ~ getAllProperties ~ options", options);
 
   const queryParams = [];
-  const {city, owner_id, minimum_price_per_night, maximum_price_per_night, minimum_rating} = options;
+  const {
+    city,
+    owner_id,
+    minimum_price_per_night,
+    maximum_price_per_night,
+    minimum_rating
+  } = options;
 
   // HEADER FOR QUERY STRING
   let queryString = `
@@ -177,6 +183,8 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function(property) {
+
+  /* eslint-disable */ 
   const {
     owner_id,
     title,
